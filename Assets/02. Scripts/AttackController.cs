@@ -4,22 +4,22 @@ using UnityEngine;
 
 public class AttackController : MonoBehaviour
 {
-    public Transform tragetToAttack;
+    public Transform targetToAttack;
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Enemy") && tragetToAttack == null)
+        if (other.CompareTag("Enemy") && targetToAttack == null)
         {
-            tragetToAttack = other.transform;
+            targetToAttack = other.transform;
         }
         
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Enemy") && tragetToAttack != null)
+        if (other.CompareTag("Enemy") && targetToAttack != null)
         {
-            tragetToAttack = null;
+            targetToAttack = null;
         }
     }
 }
