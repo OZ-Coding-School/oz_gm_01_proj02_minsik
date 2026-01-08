@@ -39,7 +39,11 @@ public class UnitSelectionBox : MonoBehaviour
         {
             if (boxVisual.rect.width > 0 || boxVisual.rect.height > 0)
             {
-                UnitSelectionManager.Instance.DeselectAll();
+                if (!Input.GetKey(KeyCode.LeftShift))
+                {
+                    UnitSelectionManager.Instance.DeselectAll();
+                }
+                
                 SelectUnits();
             }
 
@@ -110,7 +114,7 @@ public class UnitSelectionBox : MonoBehaviour
         {
             Vector3 screenPos = myCam.WorldToScreenPoint(unit.transform.position);
 
-            Debug.Log($"{unit.name} screenPos = {screenPos}, box = {selectionBox}");
+            
             if (selectionBox.Contains(myCam.WorldToScreenPoint(unit.transform.position)))
             {
                 UnitSelectionManager.Instance.DragSelect(unit);
