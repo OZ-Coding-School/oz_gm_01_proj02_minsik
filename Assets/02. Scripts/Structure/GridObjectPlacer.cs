@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using Unity.VisualScripting;
+using UnityEngine.EventSystems;
 using UnityEngine;
 
 public class GridObjectPlacer : MonoBehaviour
@@ -11,23 +12,27 @@ public class GridObjectPlacer : MonoBehaviour
     public Camera cam;
 
     [Header("Prefabs")]
-    public GameObject cube1x1Prefab;
-    public GameObject cube2x2Prefab;    
+    public GameObject hqPrefab;
+    public GameObject woodProducerPrefab;
+    public GameObject towerPrefab;
+    public GameObject upgradePrefab;
+
 
     [Header("Preview")]
     public GameObject previewObject;
     public Material previewValidMaterial;
     public Material previewInvalidMaterial;
-    private bool canPlaceCurrent;
     
 
     [Header("Raycast")]
     [SerializeField] private LayerMask groundMask;
 
     private Vector2Int currentSize = Vector2Int.one;
+    private GameObject currentPrefab;
+    private bool canPlaceCurrent;
+    private Vector3Int currentCell;
 
     public GridData gridData;
-    private Vector3Int currentCell;
 
     
     
@@ -46,6 +51,25 @@ public class GridObjectPlacer : MonoBehaviour
 
     }
 
+    public void SetBuilding(GameObject prefab, Vector2Int size)
+    {
+        currentPrefab = prefab;
+        currentSize = size;
+
+        if (previewObject != null)
+            Destroy(previewObject);
+
+        if (currentPrefab != null)
+        {
+            previewObject = Instantiate(currentPrefab);
+
+            foreach (var c in previewObject.GetComponentsInChildren<Collider>())
+                c.enabled = false;
+
+            ApplyPreviewMaterial(previewObject, true);
+        }
+    }
+
     private bool TryGetCell(out Vector3Int cell)
     {
         cell = default;
@@ -58,26 +82,18 @@ public class GridObjectPlacer : MonoBehaviour
         cell = grid.WorldToCell(hit.point);
         cell.y = 0;
         
-        bool canPlaceHere = gridData.canPlace(cell, currentSize);
-        Debug.Log($"Ray hit: {hit.collider.gameObject.name}, Hit point: {hit.point}, Grid cell: {cell}, CanPlace: {canPlaceHere}");
+        canPlaceCurrent = gridData.canPlace(cell, currentSize);
 
         return true;
     }   
 
     private void UpdatePreview(Vector3Int cell)
     {
-            Vector3 cellStart = grid.CellToWorld(cell);
-            Vector3 cellCenter = cellStart + new Vector3(currentSize.x, 0, currentSize.y) * 0.5f;
-
             if (previewObject == null)
-            {
-                GameObject prefab = currentSize == Vector2Int.one ? cube1x1Prefab : cube2x2Prefab;
-                previewObject = Instantiate(prefab);
+            return;
 
-                foreach (Collider c in previewObject.GetComponentsInChildren<Collider>())
-                c.enabled = false;
-            
-            }
+            Vector3 cellStart = grid.CellToWorld(cell);
+            Vector3 cellCenter = cellStart + new Vector3(currentSize.x, 0, currentSize.y) * 0.5f;        
 
             previewObject.transform.position = cellCenter;
             ApplyPreviewMaterial(previewObject, canPlaceCurrent); 
@@ -85,12 +101,10 @@ public class GridObjectPlacer : MonoBehaviour
 
     private void HandlePreview()
     {
-         if (!TryGetCell(out Vector3Int cell))
+            if (!TryGetCell(out Vector3Int cell))
             return;
-
+        
             currentCell = cell;
-            canPlaceCurrent = gridData.canPlace(cell, currentSize);
-
             UpdatePreview(cell);
     }
     
@@ -100,15 +114,18 @@ public class GridObjectPlacer : MonoBehaviour
         if (!Input.GetMouseButtonDown(0))
             return;
         
-        if (!canPlaceCurrent)
-        return;
+        if (EventSystem.current.IsPointerOverGameObject())
+            return;
+
+
+        if (!canPlaceCurrent || currentPrefab == null)
+            return;
         
         
         Vector3 cellStart = grid.CellToWorld(currentCell);
         Vector3 cellCenter = cellStart + new Vector3(currentSize.x, 0, currentSize.y)*0.5f;
 
-        GameObject prefab = currentSize == Vector2Int.one ? cube1x1Prefab : cube2x2Prefab;
-        GameObject newObj = Instantiate(prefab, cellCenter, Quaternion.identity);
+        Instantiate(currentPrefab, cellCenter, Quaternion.identity);
 
         // foreach (Renderer r in newObj.GetComponentsInChildren<Renderer>())
         // {
@@ -128,13 +145,13 @@ public class GridObjectPlacer : MonoBehaviour
         Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
         foreach (Renderer r in renderers)
         {
-            Material[] mats = r.materials;
+            Material[] mats = new Material[r.materials.Length];
             for (int i = 0; i < mats.Length; i++)
             {
                 mats[i] = targetMat;
 
+                r.materials = mats;
             }
-            r.materials = mats;
         }
 
         // Debug.Log($"Preview Material Applied: {targetMat.name}");
