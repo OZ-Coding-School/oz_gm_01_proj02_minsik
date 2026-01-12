@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class Unit : MonoBehaviour
 {
@@ -11,13 +12,18 @@ public class Unit : MonoBehaviour
     public bool IsDead { get; private set;}
 
     public HealthTracker healthTracker;
+
+    Animator animator;
+    NavMeshAgent navMeshAgent;
+
     void Start()
     {
         UnitSelectionManager.Instance.allUnitsList.Add(gameObject);
         unitHealth = unitMaxHealth;
-        IsDead = false;
-
         UpdateHealthUI();
+
+        animator = GetComponent<Animator>();
+        navMeshAgent = GetComponent<NavMeshAgent>();
     }
 
     private void OnDestroy()
@@ -31,7 +37,7 @@ public class Unit : MonoBehaviour
 
         if (unitHealth <= 0)
         {
-            IsDead = true;
+            
             Destroy(gameObject);
         }
     }
@@ -40,6 +46,19 @@ public class Unit : MonoBehaviour
     {
         unitHealth -= damageToInflict;
         UpdateHealthUI();
+    }
+
+    private void Update()
+    {
+        if (navMeshAgent.remainingDistance > navMeshAgent.stoppingDistance)
+        {
+            animator.SetBool("isMoving", true);
+        }
+        else
+        {
+            animator.SetBool("isMoving", false);
+            
+        }
     }
 
 

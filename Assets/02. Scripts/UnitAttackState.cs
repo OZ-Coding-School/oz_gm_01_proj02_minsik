@@ -21,6 +21,7 @@ public class UnitAttackState : StateMachineBehaviour
         agent = animator.GetComponent<NavMeshAgent>();
         attackController = animator.GetComponent<AttackController>();
         attackController.SetAttackMaterial();
+        attackController.muzzleEffect.gameObject.SetActive(true);
     }
 
     public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
@@ -57,14 +58,14 @@ public class UnitAttackState : StateMachineBehaviour
 
     }
 
+    
     private void Attack()
     {
-        Debug.Log(attackController.targetToAttack.name);
 
-        var unit = attackController.targetToAttack.GetComponent<Unit>();
-        Debug.Log(unit);
 
         var damageToInflict = attackController.unitDamage;
+
+        SoundManager.Instance.PlayInfantryAttackSound();
 
         attackController.targetToAttack.GetComponent<Unit>().TakeDamage(damageToInflict);
     }
@@ -83,6 +84,6 @@ public class UnitAttackState : StateMachineBehaviour
 
     public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        
+        attackController.muzzleEffect.gameObject.SetActive(false);
     }
 }

@@ -13,6 +13,10 @@ public class AttackController : MonoBehaviour
 
     public int unitDamage;
 
+    public GameObject muzzleEffect;
+
+    
+
     private List<Unit> enemiesInRange = new List<Unit>();
 
     private void Update()
@@ -86,17 +90,17 @@ public class AttackController : MonoBehaviour
 
     public void SetIdleMaterial()
     {
-        GetComponent<Renderer>().material = idleStateMaterial;
+        // GetComponent<Renderer>().material = idleStateMaterial;
     }
 
     public void SetFollowMaterial()
     {
-        GetComponent<Renderer>().material = followStateMaterial;
+        // GetComponent<Renderer>().material = followStateMaterial;
     }
 
     public void SetAttackMaterial()
     {
-        GetComponent<Renderer>().material = attackStateMaterial;
+        // GetComponent<Renderer>().material = attackStateMaterial;
     }
 
     private void OnDrawGizmos()
