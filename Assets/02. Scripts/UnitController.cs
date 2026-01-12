@@ -8,11 +8,13 @@ public class UnitController : MonoBehaviour
     Camera cam;
     NavMeshAgent agent;
     public LayerMask ground;
+    
 
     public bool isCommandedToMove;
 
     private void Start()
     {
+        enabled = false;
         cam = Camera.main;
         agent = GetComponent<NavMeshAgent>();
         
@@ -36,6 +38,7 @@ public class UnitController : MonoBehaviour
         {
             isCommandedToMove = false; 
         }
+       
     }
 
 
