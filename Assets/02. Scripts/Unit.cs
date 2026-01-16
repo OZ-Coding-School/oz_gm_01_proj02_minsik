@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
+public enum Team { Player, Enemy }
 public class Unit : MonoBehaviour
 {
     private float unitHealth;

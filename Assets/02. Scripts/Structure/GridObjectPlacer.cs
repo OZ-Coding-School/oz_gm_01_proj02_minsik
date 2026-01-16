@@ -46,6 +46,11 @@ public class GridObjectPlacer : MonoBehaviour
 
     void Update()
     {
+
+        if (EventSystem.current != null &&
+        EventSystem.current.IsPointerOverGameObject())
+        return;
+        
         HandlePreview();
         HandlePlacement();
 

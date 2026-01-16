@@ -2,6 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using Core.Health;
 
 public class UnitSelectionManager : MonoBehaviour
 {
@@ -13,10 +16,16 @@ public class UnitSelectionManager : MonoBehaviour
     public LayerMask ground;
     public LayerMask attackable;
     public bool attackCursorVisible;
+    public static event Action OnUnitSelected;
 
     public GameObject groundMarker;
 
     private Camera cam;
+
+    public bool blockClick = false;
+    public List<RectTransform> uiRects = new List<RectTransform>();
+    private int physicsRaycastMask;
+
 
     void Awake()
     {
@@ -30,6 +39,8 @@ public class UnitSelectionManager : MonoBehaviour
             Instance = this;
         }
 
+        physicsRaycastMask = ~LayerMask.GetMask("UI");
+
     }
 
     void Start()
@@ -40,79 +51,96 @@ public class UnitSelectionManager : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            RaycastHit hit;
-            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-
-            if (Physics.Raycast(ray, out hit, Mathf.Infinity, clickable))
-            {
-                if (Input.GetKey(KeyCode.LeftShift))
-                {
-                    MultiSelect(hit.collider.gameObject);
-                }
-                else
-                {
-                    SelectByClicking(hit.collider.gameObject);
-                }
+        if (Input.GetKeyDown(KeyCode.Escape))
+            DeselectAll();
         
-            }
-            else
-            {
-                if (Input.GetKey(KeyCode.LeftShift) == false)
-                {
-                    DeselectAll();
-                }
-            }
+        // if (IsPointerOverUI())
+        // return;
+
+        HandleLeftClick();
+        HandleRightClick();
+    }
+
+    private void HandleLeftClick()
+    {
+        if (!Input.GetMouseButtonDown(0))
+        return;
+
+        
+        
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+
+        
+        
+        if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, physicsRaycastMask))
+        {
+        Debug.Log("Raycast hit: " + hit.collider.name + " Layer: " + LayerMask.LayerToName(hit.collider.gameObject.layer));
+        GameObject clickedObject = hit.collider.gameObject;
+        int hitLayer = clickedObject.layer;
+
+        if (((1 << hitLayer) & clickable) != 0)
+        {
+            if (Input.GetKey(KeyCode.LeftShift))
+                MultiSelect(hit.collider.gameObject);
+            // else    
+                SelectByClicking(hit.collider.gameObject);
         }
 
-        if (Input.GetMouseButtonDown(1) && unitsSelected.Count > 0)
+        else if (ground.ContainsLayer(clickedObject.layer) || attackable.ContainsLayer(clickedObject.layer))
         {
-            RaycastHit hit;
-            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-
-            if (Physics.Raycast(ray, out hit, Mathf.Infinity, ground))
-            {
-                groundMarker.transform.position = hit.point;
-                groundMarker.SetActive(false);
-                groundMarker.SetActive(true);
-        
-            }
-        }
-
-        if (unitsSelected.Count > 0 && AtLeastOneOffensiveUnit(unitsSelected))
-        {
-            RaycastHit hit;
-            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-
-            if (Physics.Raycast(ray, out hit, Mathf.Infinity, attackable))
-            {
-                Debug.Log("Enemy Hovered with mouse");
-
-                attackCursorVisible = true;
-
-                if(Input.GetMouseButtonDown(0))
-                {
-                    Transform target = hit.transform;
-
-                    foreach (GameObject unit in unitsSelected)
-                    {
-                        if (unit.GetComponent<AttackController>())
-                        {
-                            unit.GetComponent<AttackController>().targetToAttack = target;
-                        }
-                    }
-
-
-                }
-        
-            }
+        // Ground 또는 공격 가능한 오브젝트 클릭 시 선택 해제 안 함
+            return;
         }
         else
         {
-            attackCursorVisible = false;
+            // if (!Input.GetKey(KeyCode.LeftShift))
+            //     DeselectAll();
+        }
+        }
+        else
+        {
+            Debug.Log("[Raycast Missed] No object hit by raycast");
         }
     }
+
+    private void HandleRightClick()
+    {
+        if (!Input.GetMouseButtonDown(1))
+            return;
+
+        if (unitsSelected.Count == 0)
+            return;
+
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+
+        if (!Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, physicsRaycastMask))
+            return;
+
+        if (((1 << hit.collider.gameObject.layer) & ground) != 0)
+        {
+            groundMarker.transform.position = hit.point;
+            groundMarker.SetActive(false);
+            groundMarker.SetActive(true);
+        }
+    }
+
+     private bool IsPointerOverUI()
+    {
+        if (EventSystem.current == null) return false;
+
+        PointerEventData eventData = new PointerEventData(EventSystem.current)
+        {
+            position = Input.mousePosition
+        };
+
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+
+        bool overUI = results.Count > 0;
+        blockClick = overUI; // UI 위면 클릭 무시
+        return overUI;
+    }
+
 
     private bool AtLeastOneOffensiveUnit(List<GameObject> unitsSelected)
     {
@@ -150,8 +178,10 @@ public class UnitSelectionManager : MonoBehaviour
         {
             SelectUnit(unit, false);;
         }
-        groundMarker.SetActive(false);
         unitsSelected.Clear();
+        groundMarker.SetActive(false);
+
+        OnUnitSelected?.Invoke();
     }
 
 
@@ -164,10 +194,10 @@ public class UnitSelectionManager : MonoBehaviour
         SelectUnit(unit, true);
     }
 
-    private void EnableUnitMovement(GameObject unit, bool shouldMove)
-    {
-        unit.GetComponent<UnitController>().enabled = shouldMove;
-    }
+    // private void EnableUnitMovement(GameObject unit, bool shouldMove)
+    // {
+    //     unit.GetComponent<UnitController>().enabled = shouldMove;
+    // }
 
     private void TriggerSelectionIndicator(GameObject unit, bool isVisible)
     {
@@ -186,7 +216,20 @@ public class UnitSelectionManager : MonoBehaviour
     private void SelectUnit(GameObject unit, bool isSelected)
     {
         TriggerSelectionIndicator(unit, isSelected);
-        EnableUnitMovement(unit, isSelected);
+        // EnableUnitMovement(unit, isSelected);
+
+        OnUnitSelected?.Invoke();
     }
 
+    
+
 }
+
+public static class LayerMaskExtensions
+{
+    public static bool ContainsLayer(this LayerMask mask, int layer)
+    {
+        return (mask.value & (1 << layer)) != 0;
+    }
+}
+
