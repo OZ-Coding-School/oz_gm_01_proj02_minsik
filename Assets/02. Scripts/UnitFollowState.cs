@@ -6,7 +6,7 @@ using UnityEngine.AI;
 public class UnitFollowState : StateMachineBehaviour
 {
     AttackController attackController;
-
+    UnitController unitController;
     NavMeshAgent agent;
     public float attackingDistance = 1.0f;
 
@@ -14,6 +14,8 @@ public class UnitFollowState : StateMachineBehaviour
     {
         attackController = animator.transform.GetComponent<AttackController>();
         agent = animator.transform.GetComponent<NavMeshAgent>();
+        unitController = animator.GetComponent<UnitController>();
+        attackController.SetFollowMaterial();
     }
 
     override public void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
@@ -21,23 +23,24 @@ public class UnitFollowState : StateMachineBehaviour
         if (attackController.targetToAttack == null)
         {
             animator.SetBool("isFollowing", false);
+            return;
         }
-        else
-        {
-            
-            if (animator.transform.GetComponent<UnitController>().isCommandedToMove == false)
-            {
-                agent.SetDestination(attackController.targetToAttack.position);
-                animator.transform.LookAt(attackController.targetToAttack);
-       
-            //     float distanceFromTarget = Vector3.Distance(attackController.targetToAttack.position, animator.transform.position);
-            //     if (distanceFromTarget < attackingDistance)
-            //     {
-                // agent.SetDestination(animator.transform.position);
-            //         animator.SetBool("isAttacking", true);
-            //     }
+        
+        
+        if (unitController.hasExternalCommand)
+            return;
 
-            }
+         Vector3 targetPos = attackController.targetToAttack.position;
+
+        if (!agent.pathPending)
+        {
+            agent.SetDestination(targetPos);
+        }    
+        float distance = Vector3.Distance(animator.transform.position, targetPos);
+
+        if (distance <= attackingDistance)
+        {
+            animator.SetBool("isAttacking", true);
         }
 
        
@@ -46,7 +49,9 @@ public class UnitFollowState : StateMachineBehaviour
 
     public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        agent.SetDestination(animator.transform.position);
+        // agent.SetDestination(animator.transform.position);
+        // agent.isStopped = true;     // 완전히 멈춤
+        // agent.ResetPath();   
     }
 
 
